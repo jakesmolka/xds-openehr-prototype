@@ -16,6 +16,14 @@
         <ipf.extension.beans>regRepModelExtension</ipf.extension.beans>
     </properties>
 
+    <repositories>
+        <repository>
+            <id>maven-restlet</id>
+            <name>Public online Restlet repository</name>
+            <url>http://maven.restlet.org</url>
+        </repository>
+    </repositories>
+
     <dependencies>
         <!-- Dependencies for main -->
         <dependency>
@@ -91,6 +99,41 @@
             <artifactId>geronimo-javamail_1.4_spec</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>org.apache.camel</groupId>
+            <artifactId>camel-restlet</artifactId>
+            <version>${camel-version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.restlet.jee</groupId>
+            <artifactId>org.restlet.ext.spring</artifactId>
+            <version>2.0.1</version>
+        </dependency>
+
+        <!-- logging - TODO: check if correct, makes logs too detailed right now -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>jcl-over-slf4j</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>1.1.7</version>
+            <exclusions>
+                <exclusion>
+                    <!-- Defined below -->
+                    <artifactId>slf4j-api</artifactId>
+                    <groupId>org.slf4j</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+        <!-- logging end -->
+
         <!-- Dependencies for test -->
         <dependency>
             <groupId>org.openehealth.ipf.commons</groupId>
@@ -107,6 +150,12 @@
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-servlet</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.jayway.restassured</groupId>
+            <artifactId>rest-assured</artifactId>
+            <version>2.9.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
