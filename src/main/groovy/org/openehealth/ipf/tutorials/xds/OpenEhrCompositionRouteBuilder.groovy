@@ -18,6 +18,7 @@ package org.openehealth.ipf.tutorials.xds
 import org.apache.camel.Expression
 import org.apache.camel.LoggingLevel
 import org.apache.camel.builder.RouteBuilder
+import org.openehealth.ipf.commons.ihe.xds.core.ebxml.ebxml30.ProvideAndRegisterDocumentSetRequestType
 import org.openehealth.ipf.commons.ihe.xds.core.metadata.Association
 import org.openehealth.ipf.commons.ihe.xds.core.requests.ProvideAndRegisterDocumentSet
 import org.openehealth.ipf.commons.ihe.xds.core.requests.RegisterDocumentSet
@@ -66,14 +67,15 @@ class OpenEhrCompositionRouteBuilder extends RouteBuilder {
             .to("direct:postComposition")
 
         from("direct:postComposition")
-            .log(log) {"CUSTOM LOG:" + it.in.getBody(String.class)}
+            .log(log) {"POST COMPOSITION:" + it.in.getBody(String.class)}
             .process(new OpenEhr2XDSProcessor())
-        //...
-        // Extract XDS metadata
-        //...
-        // Forward to XDS web service
-            .to('xds-iti41:xds-iti41')
-        // Create success response
+            // convert to and validate if its now a correct request
+            .convertBodyTo(ProvideAndRegisterDocumentSetRequestType.class)
+            .process(iti41RequestValidator())  // debugging
+            .log(log) { 'sending iti41: ' + it.in.getBody(ProvideAndRegisterDocumentSet.class) } // debugging
+            // Forward to XDS web service
+            .to('xds-iti41:localhost:9091/xds-iti41')
+            // Create success response
             .transform ( constant(new Response(Status.SUCCESS)) )
         
     }

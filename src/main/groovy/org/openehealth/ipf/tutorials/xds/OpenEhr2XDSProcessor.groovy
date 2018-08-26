@@ -3,7 +3,10 @@ package org.openehealth.ipf.tutorials.xds
 import org.apache.camel.Exchange
 import org.apache.camel.Processor
 import org.openehealth.ipf.commons.ihe.xds.core.SampleData
+import org.openehealth.ipf.commons.ihe.xds.core.requests.ProvideAndRegisterDocumentSet
 import org.openehealth.ipf.platform.camel.ihe.xds.core.converters.EbXML30Converters
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 import javax.activation.DataHandler
 
@@ -12,6 +15,8 @@ import javax.activation.DataHandler
  * TODO: Static sample test data only right now!
  */
 public class OpenEhr2XDSProcessor implements Processor{
+    private final static Logger log = LoggerFactory.getLogger(OpenEhr2XDSProcessor.class)
+
     public void process(Exchange exchange) throws Exception {
         String compositionPayload = exchange.getIn().getBody(String.class)
 
@@ -26,9 +31,5 @@ public class OpenEhr2XDSProcessor implements Processor{
         docEntry.size = ContentUtils.size(provideAndRegisterDocSet.documents[0].getContent(DataHandler))
 
         exchange.getIn().setBody(provideAndRegisterDocSet)
-
-        // shouldn't be necessary since test doesn't convert too, right?
-        //def converted = EbXML30Converters.convert(provideAndRegisterDocSet)
-        //exchange.getIn().setBody(converted)
     }
 }
