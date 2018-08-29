@@ -22,14 +22,17 @@ import org.openehealth.ipf.commons.ihe.xds.core.ebxml.ebxml30.ProvideAndRegister
 import org.openehealth.ipf.commons.ihe.xds.core.ebxml.ebxml30.RetrieveDocumentSetRequestType
 import org.openehealth.ipf.commons.ihe.xds.core.requests.ProvideAndRegisterDocumentSet
 import org.openehealth.ipf.commons.ihe.xds.core.requests.QueryRegistry
+import org.openehealth.ipf.commons.ihe.xds.core.requests.RetrieveDocumentSet
 import org.openehealth.ipf.commons.ihe.xds.core.responses.QueryResponse
 import org.openehealth.ipf.commons.ihe.xds.core.responses.Response
+import org.openehealth.ipf.commons.ihe.xds.core.responses.RetrievedDocumentSet
 import org.openehealth.ipf.commons.ihe.xds.core.responses.Status
 import org.openehealth.ipf.commons.ihe.xds.core.stub.ebrs30.query.AdhocQueryRequest
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 import static org.openehealth.ipf.platform.camel.ihe.xds.XdsCamelValidators.iti18RequestValidator
+import static org.openehealth.ipf.platform.camel.ihe.xds.XdsCamelValidators.iti18ResponseValidator
 import static org.openehealth.ipf.platform.camel.ihe.xds.XdsCamelValidators.iti41RequestValidator
 import static org.openehealth.ipf.platform.camel.ihe.xds.XdsCamelValidators.iti43RequestValidator
 
@@ -82,15 +85,19 @@ class OpenEhrCompositionRouteBuilder extends RouteBuilder {
             .convertBodyTo(AdhocQueryRequest.class)
             .process(iti18RequestValidator()) // debugging
             .to('xds-iti18:localhost:9091/xds-iti18')
-            // Todo: how to get response from that? should be type AdhocQueryResponse (ebXML) or QueryResponse (simple)
-            // seems like response should be available here
+            .process(iti18ResponseValidator()) // debugging
+            // convert ITI-18 response of type AdhocQueryResponse (ebXML) to simplified model
             .convertBodyTo(QueryResponse.class)
             .process(new QueryResponseToRetrieveDocumentSetProcessor())
             // convert to ebXML representation and forward to retrieval
             .convertBodyTo(RetrieveDocumentSetRequestType.class)
             .process(iti43RequestValidator())
             .to('xds-iti43:localhost:9091/xds-iti43')
-            // TODO: does leaving it like that get me response of ITI-43 returned to REST?!
-            // TODO: nah guess would need one last processor to take ebXML and cut out whats needed
+            // convert ITI-43 response of type RetrieveDocumentSetResponseType to simplified model
+            .convertBodyTo(RetrievedDocumentSet.class)
+            // finally extract and return payload
+            .process(new RetrievedDocumentSetToOpenEhrProcessor())
+            // return body as REST response
+            .transform().body()
     }
 }
