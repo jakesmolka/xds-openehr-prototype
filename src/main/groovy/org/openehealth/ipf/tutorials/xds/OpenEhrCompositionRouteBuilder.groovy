@@ -15,28 +15,23 @@
  */
 package org.openehealth.ipf.tutorials.xds
 
-import org.apache.camel.Expression
+
 import org.apache.camel.LoggingLevel
 import org.apache.camel.builder.RouteBuilder
 import org.openehealth.ipf.commons.ihe.xds.core.ebxml.ebxml30.ProvideAndRegisterDocumentSetRequestType
-import org.openehealth.ipf.commons.ihe.xds.core.metadata.Association
+import org.openehealth.ipf.commons.ihe.xds.core.ebxml.ebxml30.RetrieveDocumentSetRequestType
 import org.openehealth.ipf.commons.ihe.xds.core.requests.ProvideAndRegisterDocumentSet
-import org.openehealth.ipf.commons.ihe.xds.core.requests.RegisterDocumentSet
+import org.openehealth.ipf.commons.ihe.xds.core.requests.QueryRegistry
+import org.openehealth.ipf.commons.ihe.xds.core.responses.QueryResponse
 import org.openehealth.ipf.commons.ihe.xds.core.responses.Response
 import org.openehealth.ipf.commons.ihe.xds.core.responses.Status
+import org.openehealth.ipf.commons.ihe.xds.core.stub.ebrs30.query.AdhocQueryRequest
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-import javax.activation.DataHandler
-import javax.mail.util.ByteArrayDataSource
-
-import static org.openehealth.ipf.commons.ihe.xds.core.metadata.AssociationType.*
-import static org.openehealth.ipf.commons.ihe.xds.core.metadata.AvailabilityStatus.APPROVED
-import static org.openehealth.ipf.commons.ihe.xds.core.metadata.AvailabilityStatus.DEPRECATED
-import static org.openehealth.ipf.commons.ihe.xds.core.validate.ValidationMessage.*
+import static org.openehealth.ipf.platform.camel.ihe.xds.XdsCamelValidators.iti18RequestValidator
 import static org.openehealth.ipf.platform.camel.ihe.xds.XdsCamelValidators.iti41RequestValidator
-import static org.openehealth.ipf.platform.camel.ihe.xds.XdsCamelValidators.iti42RequestValidator
-import static org.openehealth.ipf.tutorials.xds.SearchResult.*
+import static org.openehealth.ipf.platform.camel.ihe.xds.XdsCamelValidators.iti43RequestValidator
 
 /**
  * Route builder for openEHR REST API /composition endpoint.
@@ -68,7 +63,7 @@ class OpenEhrCompositionRouteBuilder extends RouteBuilder {
 
         from("direct:postComposition")
             .log(log) {"POST COMPOSITION:" + it.in.getBody(String.class)}
-            .process(new OpenEhr2XDSProcessor())
+            .process(new OpenEhrToProvideAndRegisterProcessor())
             // convert to and validate if its now a correct request
             .convertBodyTo(ProvideAndRegisterDocumentSetRequestType.class)
             .process(iti41RequestValidator())  // debugging
@@ -77,6 +72,25 @@ class OpenEhrCompositionRouteBuilder extends RouteBuilder {
             .to('xds-iti41:localhost:9091/xds-iti41')
             // Create success response
             .transform ( constant(new Response(Status.SUCCESS)) )
-        
+
+        // Entry point for GETing compositions
+        rest().get("/ehr/{ehr_id}/composition/{version_uid}")
+                .to("direct:getComposition")
+
+        from("direct:getComposition")
+            .process(new OpenEhrToRegistryStoredQueryProcessor())
+            .convertBodyTo(AdhocQueryRequest.class)
+            .process(iti18RequestValidator()) // debugging
+            .to('xds-iti18:localhost:9091/xds-iti18')
+            // Todo: how to get response from that? should be type AdhocQueryResponse (ebXML) or QueryResponse (simple)
+            // seems like response should be available here
+            .convertBodyTo(QueryResponse.class)
+            .process(new QueryResponseToRetrieveDocumentSetProcessor())
+            // convert to ebXML representation and forward to retrieval
+            .convertBodyTo(RetrieveDocumentSetRequestType.class)
+            .process(iti43RequestValidator())
+            .to('xds-iti43:localhost:9091/xds-iti43')
+            // TODO: does leaving it like that get me response of ITI-43 returned to REST?!
+            // TODO: nah guess would need one last processor to take ebXML and cut out whats needed
     }
 }

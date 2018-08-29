@@ -51,7 +51,7 @@ class TestOpenEhrComposition extends StandardTestContainer {
 
     @BeforeClass
     static void classSetUp() {
-        startServer(new CXFServlet(), 'context.xml', false)
+        startServer(new CXFServlet(), 'context.xml', false, 9091)
     }
 
     // Simple 'GET hello' test
@@ -86,6 +86,33 @@ class TestOpenEhrComposition extends StandardTestContainer {
 
         assertNotNull(response)
         assertEquals(response.toString(), 200, response.statusCode())
+    }
+
+    // 'GET composition test
+    @Test
+    void testGetComposition() {
+        RestAssured.baseURI = "http://localhost"
+        RestAssured.port = 8088
+
+        // first create composition
+        com.jayway.restassured.response.Response response =
+                given()
+                    .header("Ehr-Session", "3h8q0f")
+                    .body("{\"content\":\"yesthisiscontent\"}")
+                .when()
+                    .post("/ehr/12345/composition")
+
+        assertNotNull(response)
+        assertEquals(response.toString(), 200, response.statusCode())
+
+        // next retrieve composition // TODO: temp: assuming composition id == document id. correct?!
+        com.jayway.restassured.response.Response postResponse =
+            given()
+            .when()
+                .get("/ehr/12345/composition/6789")
+
+        assertNotNull(postResponse)
+        assertEquals(postResponse.toString(), 200, postResponse.statusCode())
     }
 
 /*    @Test
